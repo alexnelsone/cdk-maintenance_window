@@ -1,0 +1,28 @@
+env: default
+namespace: nlalex
+
+
+ssm:
+  patch_baseline:
+    amazon_linux2_patch_baseline:
+      description: 'custom patch baseline for amazon linux 2'
+      operating_system: 'AMAZON_LINUX_2'
+      approved_patches_enable_non_security: True
+      patch_filter_properties:
+        PRODUCT:
+          values:
+            - 'AmazonLinux2'
+            - 'AmazonLinux2.0'
+        CLASSIFICATION:
+          values:
+            - 'Security'
+            - 'Bugfix'
+            - 'Enhancement'
+            - 'Recommended'
+        SEVERITY:
+          values:
+            - 'Critical'
+            - 'Important'
+            - 'Medium'
+            - 'Low'
+
