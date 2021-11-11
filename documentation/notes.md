@@ -18,7 +18,7 @@ This:
 
 
 replaced this:
-
+ 
                amazon_linux2_product_patch_filter = ssm.CfnPatchBaseline.PatchFilterProperty(key='PRODUCT',
                                                                                               values=['AmazonLinux2',
                                                                                                       'AmazonLinux2.0'])

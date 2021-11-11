@@ -8,6 +8,11 @@ ssm:
       description: 'custom patch baseline for amazon linux 2'
       operating_system: 'AMAZON_LINUX_2'
       approved_patches_enable_non_security: True
+      approve_after_days: 7
+      compliance_level: 'CRITICAL'
+      enable_non_security: True
+      patch_groups:
+        - 'custom_test'
       patch_filter_properties:
         PRODUCT:
           values:

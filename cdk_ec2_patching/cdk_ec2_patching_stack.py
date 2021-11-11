@@ -95,43 +95,26 @@ class CdkEc2PatchingStack(cdk.Stack):
                             patch_filters.append(ssm.CfnPatchBaseline.PatchFilterProperty(key=f'{property}',
                                                                                           values=patch_baseline[f'{patch_baseline_name}']['patch_filter_properties'][f'{property}']['values']))
 
+                        rPatchBaselinePatchFilterGroup = ssm.CfnPatchBaseline.PatchFilterGroupProperty(
+                            patch_filters=patch_filters
+                        )
 
-                amazon_linux2_product_patch_filter = ssm.CfnPatchBaseline.PatchFilterProperty(key='PRODUCT',
-                                                                                              values=['AmazonLinux2',
-                                                                                                      'AmazonLinux2.0'])
+                    rPatchBaselineRules = ssm.CfnPatchBaseline.RuleProperty(approve_after_days=patch_baseline[f'{patch_baseline_name}']['approve_after_days'],
+                                                                            compliance_level=patch_baseline[f'{patch_baseline_name}']['compliance_level'],
+                                                                            enable_non_security=patch_baseline[f'{patch_baseline_name}']['enable_non_security'],
+                                                                            patch_filter_group=rPatchBaselinePatchFilterGroup,
+                                                                            )
 
-                amazon_linux2_classification_patch_filter = ssm.CfnPatchBaseline.PatchFilterProperty(key='CLASSIFICATION',
-                                                                                                     values=['Security',
-                                                                                                             'Bugfix',
-                                                                                                             'Enhancement',
-                                                                                                             'Recommended'])
+                    rPatchBaselineRuleGroup = ssm.CfnPatchBaseline.RuleGroupProperty(patch_rules=[rPatchBaselineRules])
 
-                amazon_linux2_severity_patch_filter = ssm.CfnPatchBaseline.PatchFilterProperty(key='SEVERITY',
-                                                                                               values=['Critical',
-                                                                                                       'Important',
-                                                                                                       'Medium',
-                                                                                                       'Low'])
-
-                rPatchBaselinePatchFilterGroup = ssm.CfnPatchBaseline.PatchFilterGroupProperty(
-                    patch_filters=patch_filters
-                )
-
-                rPatchBaselineRules = ssm.CfnPatchBaseline.RuleProperty(approve_after_days=7,
-                                                                        compliance_level='CRITICAL',
-                                                                        enable_non_security=True,
-                                                                        patch_filter_group=rPatchBaselinePatchFilterGroup,
-                                                                        )
-
-                rPatchBaselineRuleGroup = ssm.CfnPatchBaseline.RuleGroupProperty(patch_rules=[rPatchBaselineRules])
-
-                rPatchBaseline = ssm.CfnPatchBaseline(self, 'rPatchBaseline',
-                                                      name=f'{namespace}_custom_patch_baseline',
-                                                      description='custom patchbaseline for test',
-                                                      operating_system='AMAZON_LINUX_2',
-                                                      approved_patches_enable_non_security=True,
-                                                      patch_groups=['custom_test'],
-                                                      approval_rules=rPatchBaselineRuleGroup,
-                                                      )
+                    rPatchBaseline = ssm.CfnPatchBaseline(self, 'rPatchBaseline',
+                                                          name=f'{namespace}_{patch_baseline_name}',
+                                                          description=patch_baseline[f'{patch_baseline_name}']['description'],
+                                                          operating_system=patch_baseline[f'{patch_baseline_name}']['operating_system'],
+                                                          approved_patches_enable_non_security=patch_baseline[f'{patch_baseline_name}']['approved_patches_enable_non_security'],
+                                                          patch_groups=patch_baseline[f'{patch_baseline_name}']['patch_groups'],
+                                                          approval_rules=rPatchBaselineRuleGroup,
+                                                          )
 
         # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
         rMaintenanceWindow = ssm.CfnMaintenanceWindow(self, 'rMaintenanceWindow',
