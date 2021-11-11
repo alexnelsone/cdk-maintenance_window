@@ -1,4 +1,6 @@
 
+# Patch Baseline Filters:
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ssm-patchbaseline-patchfilter.html    
 
 This:
        if 'ssm' in config.keys():
