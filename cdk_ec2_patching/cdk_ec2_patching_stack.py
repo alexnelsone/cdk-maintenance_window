@@ -84,23 +84,23 @@ class CdkEc2PatchingStack(cdk.Stack):
             if 'patch_baseline' in config['ssm'].keys():
                 for patch_baseline in config['ssm']['patch_baseline']:
                     patch_baseline_name = patch_baseline
-                    patch_baseline = config['ssm']['patch_baseline']
+                    patch_baseline = config['ssm']['patch_baseline'][f'{patch_baseline_name}']
 
-                    if 'patch_filter_properties' in patch_baseline[f'{patch_baseline_name}'].keys():
+                    if 'patch_filter_properties' in patch_baseline.keys():
                         # The PatchFilter property type defines a patch filter for an AWS Systems Manager patch baseline.
 
                         patch_filters = []
-                        for property in patch_baseline[f'{patch_baseline_name}']['patch_filter_properties']:
+                        for property in patch_baseline['patch_filter_properties']:
                             patch_filters.append(ssm.CfnPatchBaseline.PatchFilterProperty(key=f'{property}',
-                                                                                          values=patch_baseline[f'{patch_baseline_name}']['patch_filter_properties'][f'{property}']['values']))
+                                                                                          values=patch_baseline['patch_filter_properties'][f'{property}']['values']))
 
                         rPatchBaselinePatchFilterGroup = ssm.CfnPatchBaseline.PatchFilterGroupProperty(
                             patch_filters=patch_filters
                         )
 
-                    rPatchBaselineRules = ssm.CfnPatchBaseline.RuleProperty(approve_after_days=patch_baseline[f'{patch_baseline_name}']['approve_after_days'],
-                                                                            compliance_level=patch_baseline[f'{patch_baseline_name}']['compliance_level'],
-                                                                            enable_non_security=patch_baseline[f'{patch_baseline_name}']['enable_non_security'],
+                    rPatchBaselineRules = ssm.CfnPatchBaseline.RuleProperty(approve_after_days=patch_baseline['approve_after_days'],
+                                                                            compliance_level=patch_baseline['compliance_level'],
+                                                                            enable_non_security=patch_baseline['enable_non_security'],
                                                                             patch_filter_group=rPatchBaselinePatchFilterGroup,
                                                                             )
 
@@ -108,10 +108,10 @@ class CdkEc2PatchingStack(cdk.Stack):
 
                     rPatchBaseline = ssm.CfnPatchBaseline(self, 'rPatchBaseline',
                                                           name=f'{namespace}_{patch_baseline_name}',
-                                                          description=patch_baseline[f'{patch_baseline_name}']['description'],
-                                                          operating_system=patch_baseline[f'{patch_baseline_name}']['operating_system'],
-                                                          approved_patches_enable_non_security=patch_baseline[f'{patch_baseline_name}']['approved_patches_enable_non_security'],
-                                                          patch_groups=patch_baseline[f'{patch_baseline_name}']['patch_groups'],
+                                                          description=patch_baseline['description'],
+                                                          operating_system=patch_baseline['operating_system'],
+                                                          approved_patches_enable_non_security=patch_baseline['approved_patches_enable_non_security'],
+                                                          patch_groups=patch_baseline['patch_groups'],
                                                           approval_rules=rPatchBaselineRuleGroup)
 
             if 'maintenance_window' in config['ssm'].keys():
