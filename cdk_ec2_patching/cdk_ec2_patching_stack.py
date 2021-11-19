@@ -6,7 +6,7 @@ from aws_cdk import (
 )
 
 import boto3
-
+import sys
 
 class CdkEc2PatchingStack(cdk.Stack):
 
@@ -85,7 +85,6 @@ class CdkEc2PatchingStack(cdk.Stack):
                 for patch_baseline in config['ssm']['patch_baseline']:
                     patch_baseline_name = patch_baseline
                     patch_baseline = config['ssm']['patch_baseline']
-                    print(patch_baseline)
 
                     if 'patch_filter_properties' in patch_baseline[f'{patch_baseline_name}'].keys():
                         # The PatchFilter property type defines a patch filter for an AWS Systems Manager patch baseline.
@@ -113,48 +112,111 @@ class CdkEc2PatchingStack(cdk.Stack):
                                                           operating_system=patch_baseline[f'{patch_baseline_name}']['operating_system'],
                                                           approved_patches_enable_non_security=patch_baseline[f'{patch_baseline_name}']['approved_patches_enable_non_security'],
                                                           patch_groups=patch_baseline[f'{patch_baseline_name}']['patch_groups'],
-                                                          approval_rules=rPatchBaselineRuleGroup,
-                                                          )
+                                                          approval_rules=rPatchBaselineRuleGroup)
+
+            if 'maintenance_window' in config['ssm'].keys():
+                for maintenance_window in config['ssm']['maintenance_window']:
+                    maintenance_window_name = maintenance_window
+                    maintenance_window = config['ssm']['maintenance_window']
+                    print(maintenance_window_name)
+
+
+                    rMaintenanceWindow = ssm.CfnMaintenanceWindow(self, 'rMaintenanceWindow',
+                                                                  name=f'{namespace}_{maintenance_window_name}',
+                                                                  description=maintenance_window[f'{maintenance_window_name}']['description'],
+                                                                  allow_unassociated_targets=maintenance_window[f'{maintenance_window_name}']['allow_unassociated_targets'],
+                                                                  schedule=maintenance_window[f'{maintenance_window_name}']['schedule'],
+                                                                  duration=maintenance_window[f'{maintenance_window_name}']['duration'],
+                                                                  cutoff=maintenance_window[f'{maintenance_window_name}']['cutoff'],
+                                                                  schedule_timezone=maintenance_window[f'{maintenance_window_name}']['schedule_timezone'])
+
+                    if 'maintenance_window_target' in maintenance_window[f'{maintenance_window_name}'].keys():
+                        maintenance_window_target = maintenance_window[f'{maintenance_window_name}']['maintenance_window_target']
+
+                        if 'targets' in maintenance_window_target.keys():
+                            targets = []
+                            for target in maintenance_window_target['targets']:
+                                print(target)
+                                targets.append(ssm.CfnMaintenanceWindowTarget.TargetsProperty(
+                                    key=target['key'],
+                                    values=target['values']
+                                ))
+                        else:
+                            print('No targets defined for Maintenance Window Targets. Targets are required.')
+                            print('https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ssm-maintenancewindowtarget.html#cfn-ssm-maintenancewindowtarget-targets')
+                            sys.exit()
+
+                        rMaintenanceWindowTarget = ssm.CfnMaintenanceWindowTarget(self, 'rMaintenanceWindowTarget',
+                                                                                  description=maintenance_window_target['description'],
+                                                                                  resource_type=maintenance_window_target['resource_type'],
+                                                                                  window_id=rMaintenanceWindow.ref,
+                                                                                  name=f'{namespace}_{maintenance_window_target["resource_type"]}',
+                                                                                  targets=targets)
+
+                        if 'maintenance_window_task' in maintenance_window[f'{maintenance_window_name}'].keys():
+
+                            if 'RUN_COMMAND' in maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_type']:
+                                # https: // docs.aws.amazon.com / cdk / api / latest / python / aws_cdk.aws_ssm / CfnMaintenanceWindowTask.html  # maintenancewindowruncommandparametersproperty
+                                rMaintenanceWindowRunCommandParameters = ssm.CfnMaintenanceWindowTask.MaintenanceWindowRunCommandParametersProperty(
+                                    parameters={
+                                        "Operation": ["Install"]
+                                    }
+                                )
+                            # add more task properties for specific tasks as needed.
+
+                                rSsmMaintWindowTask = ssm.CfnMaintenanceWindowTask(
+                                    self, 'rSsmMaintWindowTask',
+                                    max_concurrency=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['max_concurrency'],
+                                    max_errors=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['max_concurrency'],
+                                    priority=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['priority'],
+                                    targets=[{'key': 'WindowTargetIds', 'values': [rMaintenanceWindowTarget.ref]}],
+                                    task_arn=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_arn'],
+                                    task_type=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_type'],
+                                    window_id=rMaintenanceWindow.ref,
+                                    name=f'{namespace}_maintenance_window_task',
+                                    task_invocation_parameters=ssm.CfnMaintenanceWindowTask.TaskInvocationParametersProperty(
+                                        maintenance_window_run_command_parameters=rMaintenanceWindowRunCommandParameters)
+                            )
+
 
         # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-        rMaintenanceWindow = ssm.CfnMaintenanceWindow(self, 'rMaintenanceWindow',
-                                                      name=f'{namespace}_custom_maintenance_window',
-                                                      description='maintenance window for nlalex',
-                                                      allow_unassociated_targets=True,
-                                                      schedule='cron(0 4 ? * SUN *)',
-                                                      duration=4,
-                                                      cutoff=1,
-                                                      schedule_timezone='America/Denver'
-                                                      )
+        # rMaintenanceWindow = ssm.CfnMaintenanceWindow(self, 'rMaintenanceWindow',
+        #                                               name=f'{namespace}_custom_maintenance_window',
+        #                                               description='maintenance window for nlalex',
+        #                                               allow_unassociated_targets=True,
+        #                                               schedule='cron(0 4 ? * SUN *)',
+        #                                               duration=4,
+        #                                               cutoff=1,
+        #                                               schedule_timezone='America/Denver'
+        #                                               )
 
-        rMaintenanceWindowTarget = ssm.CfnMaintenanceWindowTarget(self, 'rMaintenanceWindowTarget',
-                                                                  description='nlalex maint window target',
-                                                                  resource_type='INSTANCE',
-                                                                  window_id=rMaintenanceWindow.ref,
-                                                                  name=f'{namespace}_development_instances_targets',
-                                                                  targets=[
-                                                                      ssm.CfnMaintenanceWindowTarget.TargetsProperty(
-                                                                          key='tag:environment',
-                                                                          values=['development'])
+        # rMaintenanceWindowTarget = ssm.CfnMaintenanceWindowTarget(self, 'rMaintenanceWindowTarget',
+        #                                                           description='nlalex maint window target',
+        #                                                           resource_type='INSTANCE',
+        #                                                           window_id=rMaintenanceWindow.ref,
+        #                                                           name=f'{namespace}_development_instances_targets',
+        #                                                           targets=[
+        #                                                               ssm.CfnMaintenanceWindowTarget.TargetsProperty(
+        #                                                                   key='tag:environment',
+        #                                                                   values=['development'])
+        #                                                           ])
 
-                                                                  ])
+        # rMaintenanceWindowRunCommandParameters = ssm.CfnMaintenanceWindowTask.MaintenanceWindowRunCommandParametersProperty(
+        #     parameters={
+        #         "Operation": ["Install"]
+        #     }
+        # )
 
-        rMaintenanceWindowRunCommandParameters = ssm.CfnMaintenanceWindowTask.MaintenanceWindowRunCommandParametersProperty(
-            parameters={
-                "Operation": ["Install"]
-            }
-        )
-
-        rSsmMaintWindowTask = ssm.CfnMaintenanceWindowTask(
-            self, 'rSsmMaintWindowTask',
-            max_concurrency='5',
-            max_errors='5',
-            priority=1,
-            targets=[{'key': 'WindowTargetIds', 'values': [rMaintenanceWindowTarget.ref]}],
-            task_arn='AWS-RunPatchBaseline',
-            task_type='RUN_COMMAND',
-            window_id=rMaintenanceWindow.ref,
-            name=f'{namespace}_maintenance_window_task',
-            task_invocation_parameters=ssm.CfnMaintenanceWindowTask.TaskInvocationParametersProperty(
-                maintenance_window_run_command_parameters=rMaintenanceWindowRunCommandParameters)
-        )
+        # rSsmMaintWindowTask = ssm.CfnMaintenanceWindowTask(
+        #     self, 'rSsmMaintWindowTask',
+        #     max_concurrency='5',
+        #     max_errors='5',
+        #     priority=1,
+        #     targets=[{'key': 'WindowTargetIds', 'values': [rMaintenanceWindowTarget.ref]}],
+        #     task_arn='AWS-RunPatchBaseline',
+        #     task_type='RUN_COMMAND',
+        #     window_id=rMaintenanceWindow.ref,
+        #     name=f'{namespace}_maintenance_window_task',
+        #     task_invocation_parameters=ssm.CfnMaintenanceWindowTask.TaskInvocationParametersProperty(
+        #         maintenance_window_run_command_parameters=rMaintenanceWindowRunCommandParameters)
+        # )

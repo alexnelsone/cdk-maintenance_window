@@ -30,4 +30,26 @@ ssm:
             - 'Important'
             - 'Medium'
             - 'Low'
+  maintenance_window:
+    maintenance_window_1:
+      description: 'this is a description'
+      allow_unassociated_targets: True
+      schedule: 'cron(0 4 ? * SUN *)'
+      duration: 4
+      cutoff: 1
+      schedule_timezone: 'America/Denver'
+      maintenance_window_target:
+        description: 'this is a maintenance window target'
+        resource_type: 'INSTANCE'
+        name: 'maint_window_target'
+        targets:
+          - key: 'tag:environment'
+            values:
+              - 'development'
+      maintenance_window_task:
+        task_type: 'RUN_COMMAND'
+        max_concurrency: '5'
+        max_errors: '5'
+        priority: 1
+        task_arn: 'AWS-RunPatchBaseline'
 
