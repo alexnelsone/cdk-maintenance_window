@@ -154,8 +154,10 @@ class CdkEc2PatchingStack(cdk.Stack):
                                                                                   targets=targets)
 
                         if 'maintenance_window_task' in maintenance_window[f'{maintenance_window_name}'].keys():
+                            maintenance_window_task = maintenance_window[f'{maintenance_window_name}'][
+                                'maintenance_window_task']
 
-                            if 'RUN_COMMAND' in maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_type']:
+                            if 'RUN_COMMAND' in maintenance_window_task['task_type']:
                                 # https: // docs.aws.amazon.com / cdk / api / latest / python / aws_cdk.aws_ssm / CfnMaintenanceWindowTask.html  # maintenancewindowruncommandparametersproperty
                                 rMaintenanceWindowRunCommandParameters = ssm.CfnMaintenanceWindowTask.MaintenanceWindowRunCommandParametersProperty(
                                     parameters={
@@ -166,12 +168,12 @@ class CdkEc2PatchingStack(cdk.Stack):
 
                                 rSsmMaintWindowTask = ssm.CfnMaintenanceWindowTask(
                                     self, 'rSsmMaintWindowTask',
-                                    max_concurrency=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['max_concurrency'],
-                                    max_errors=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['max_concurrency'],
-                                    priority=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['priority'],
+                                    max_concurrency=maintenance_window_task['max_concurrency'],
+                                    max_errors=maintenance_window_task['max_concurrency'],
+                                    priority=maintenance_window_task['priority'],
                                     targets=[{'key': 'WindowTargetIds', 'values': [rMaintenanceWindowTarget.ref]}],
-                                    task_arn=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_arn'],
-                                    task_type=maintenance_window[f'{maintenance_window_name}']['maintenance_window_task']['task_type'],
+                                    task_arn=maintenance_window_task['task_arn'],
+                                    task_type=maintenance_window_task['task_type'],
                                     window_id=rMaintenanceWindow.ref,
                                     name=f'{namespace}_maintenance_window_task',
                                     task_invocation_parameters=ssm.CfnMaintenanceWindowTask.TaskInvocationParametersProperty(
