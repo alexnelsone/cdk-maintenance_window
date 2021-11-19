@@ -34,7 +34,7 @@ ssm:
     maintenance_window_1:
       description: 'this is a description'
       allow_unassociated_targets: True
-      schedule: 'cron(0 4 ? * SUN *)'
+      schedule: 'cron(*/5 * ? * * *)'
       duration: 4
       cutoff: 1
       schedule_timezone: 'America/Denver'
